@@ -1,0 +1,14 @@
+{
+  "name": "weather-forecast",
+  "version": "0.1.0",
+  "description": "The front-end for weather forecast ",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Yaoqi Jia",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "@polkadot/api": "^0.99.1"
+  }
+}
