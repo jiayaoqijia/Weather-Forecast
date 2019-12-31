@@ -140,9 +140,9 @@ decl_module! {
 		// 	Ok(())
 		// }
 
+		// Root account adds accounts as authorities to submit weather proposals via offchain worker.
 		pub fn add_proposal_authority(origin, who: T::AccountId) -> dispatch::DispatchResult {
-			// In practice this should be a bit cleverer, but for this example it is enough
-			// that this is protected by a root-call (e.g. through governance like `sudo`).
+			// This is protected by a root-call (e.g. through governance like `sudo`).
 			debug::info!("add_proposal_authority who is {:?}", &who);
 	
 			let _me = ensure_root(origin)?;
@@ -157,9 +157,8 @@ decl_module! {
 			Ok(())
 		}
 
+		// Root account deletes proposal authorities.
 		pub fn delete_proposal_authority(origin, who: T::AccountId) -> dispatch::DispatchResult {
-			// In practice this should be a bit cleverer, but for this example it is enough
-			// that this is protected by a root-call (e.g. through governance like `sudo`).
 			let _me = ensure_root(origin)?;
 	
 			if Self::is_proposal_authority(&who) {
@@ -170,10 +169,9 @@ decl_module! {
 			Ok(())
 		}
 
+		// Root account adds accounts as authorities to vote for weather proposals via offchain worker.
 		pub fn add_vote_authority(origin, who: T::AccountId) -> dispatch::DispatchResult {
-			// In practice this should be a bit cleverer, but for this example it is enough
-			// that this is protected by a root-call (e.g. through governance like `sudo`).
-			debug::info!("add_vote_authority who is {:?}", &who);
+			// debug::info!("add_vote_authority who is {:?}", &who);
 	
 			let _me = ensure_root(origin)?;
 			debug::info!("add_vote_authority is {:?}", Self::vote_authorities());
@@ -187,9 +185,8 @@ decl_module! {
 			Ok(())
 		}
 
+		// Root account deletes vote authorities.
 		pub fn delete_vote_authority(origin, who: T::AccountId) -> dispatch::DispatchResult {
-			// In practice this should be a bit cleverer, but for this example it is enough
-			// that this is protected by a root-call (e.g. through governance like `sudo`).
 			let _me = ensure_root(origin)?;
 	
 			if Self::is_vote_authority(&who) {
@@ -200,10 +197,8 @@ decl_module! {
 			Ok(())
 		}
 
+		// Root account sets the threshold of # votes for a weather proposal to be confirmed.
 		pub fn set_vote_threshold(origin, threshold: u64) -> dispatch::DispatchResult {
-			// In practice this should be a bit cleverer, but for this example it is enough
-			// that this is protected by a root-call (e.g. through governance like `sudo`).
-			// Check if it's from root account
 			let _me = ensure_root(origin)?;
 			debug::info!("set_vote_threshold is {:?}", Self::vote_threshold());
 	
@@ -218,16 +213,14 @@ decl_module! {
 			// At the beginning of each block execution, system triggers all
 			// `on_initialize` functions, which allows us to set up some temporary state or - like
 			// in this case - clean up other states
-			// Nonce::put(0);
 		  }
 
 		
 		pub fn submit_weather_proposal(origin, weather: Weather, hash: T::Hash) -> dispatch::DispatchResult {
-			// let who = ensure_signed(origin)?;
-			// FIXME: check if the sender is in proposalauthoritylist.
 
 			let sender = ensure_signed(origin)?;
 
+			// Check if the sender is in proposalauthoritylist.
 			if !Self::is_proposal_authority(&sender) {
 				// TODO: return error
 				debug::info!("{:?} is not in the proposal authority list.", &sender);
