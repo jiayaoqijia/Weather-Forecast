@@ -140,8 +140,6 @@ decl_module! {
 		// 	Ok(())
 		// }
 
-		// Simple authority management: add a new authority to the set of keys that
-		// are allowed to respond with `pong`.
 		pub fn add_proposal_authority(origin, who: T::AccountId) -> dispatch::DispatchResult {
 			// In practice this should be a bit cleverer, but for this example it is enough
 			// that this is protected by a root-call (e.g. through governance like `sudo`).
@@ -172,8 +170,6 @@ decl_module! {
 			Ok(())
 		}
 
-		// Simple authority management: add a new authority to the set of keys that
-		// are allowed to respond with `pong`.
 		pub fn add_vote_authority(origin, who: T::AccountId) -> dispatch::DispatchResult {
 			// In practice this should be a bit cleverer, but for this example it is enough
 			// that this is protected by a root-call (e.g. through governance like `sudo`).
@@ -204,8 +200,6 @@ decl_module! {
 			Ok(())
 		}
 
-		// Simple authority management: add a new authority to the set of keys that
-		// are allowed to respond with `pong`.
 		pub fn set_vote_threshold(origin, threshold: u64) -> dispatch::DispatchResult {
 			// In practice this should be a bit cleverer, but for this example it is enough
 			// that this is protected by a root-call (e.g. through governance like `sudo`).
@@ -228,8 +222,6 @@ decl_module! {
 		  }
 
 		
-		// FIXME: Extrinsic invalid
-		// pub fn submit_weather_proposal(origin, weather: Weather<T::Moment>) -> dispatch::DispatchResult {
 		pub fn submit_weather_proposal(origin, weather: Weather, hash: T::Hash) -> dispatch::DispatchResult {
 			// let who = ensure_signed(origin)?;
 			// FIXME: check if the sender is in proposalauthoritylist.
