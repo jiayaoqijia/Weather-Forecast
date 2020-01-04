@@ -1,6 +1,6 @@
 # Weather UI
 
-A weather UI to display the current weather fetched from Weather Forecast.
+A weather [UI](https://github.com/mwrod/weather-widget) to display the current weather fetched from [Weather Forecast](../chain).
 
 ## Build
 
@@ -21,4 +21,4 @@ A weather UI to display the current weather fetched from Weather Forecast.
 
 ## License
 
-[License](../LICENSE).
+Weather UI is [GPL 3.0 licensed](../LICENSE).
