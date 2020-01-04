@@ -32,7 +32,7 @@ The current version has the following features implemented:
     ```
     ./scripts/init.sh
     cargo build --release
-    ./target/release/Weather-Forecast --dev
+    ./target/release/weather-forecast --dev
     ```
 
     The above process may take 30 minuites or so, depending on your hardware. This should start your node, and you should see blocks being created.
