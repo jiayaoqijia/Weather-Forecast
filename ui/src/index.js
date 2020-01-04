@@ -59,7 +59,8 @@ export default metric;
 
 async function fetchChainState(metric) {
   // Initialise the provider to connect to the local node
-  const wsProvider = new WsProvider("ws://10.1.1.54:9944");
+  const wsProvider = new WsProvider("ws://127.0.0.1:9944");
+  // const wsProvider = new WsProvider("ws://10.1.1.54:9944");
   // const wsProvider = new WsProvider("wss://cc3-5.kusama.network");
 
   // Create the API and wait until ready
