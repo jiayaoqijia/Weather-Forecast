@@ -121,7 +121,6 @@ async function fetchChainState() {
   async function fetchChainWeather() {
   let weather = await fetchChainState().catch(console.error);
   console.log( 'weather is: ' + JSON.stringify(weather));
-    // .finally(() => process.exit());
   //   let weatherNow = {
   //     city: "New York",
   //     cloudiness: 50,
@@ -138,6 +137,7 @@ async function fetchChainState() {
 // {"time":1577691720,"city":"0x4c6f6e646f6e","main":"0x466f67","description":"0x666f67","icon":"0x35306e","temp":277780,"humidity":93000,"wind":5100,"clouds":75000,"sunrise":1577693175,"sunset":1577721550}
   // }
 
+  // Convert hex data to ascii.
   function hex2a(hexx) {
     var hex = hexx.toString();//force conversion
     var str = '';
