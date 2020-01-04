@@ -1,30 +1,4 @@
-/// A runtime module template with necessary imports
-
-/// Feel free to remove or edit this file as needed.
-/// If you change the name of this file, make sure to update its references in runtime/src/lib.rs
-/// If you remove this file, you can remove those references
-
-/// TODO: Add timestamp (Moment) (removed)
-/// Create Weather type (done)
-/// Submit signed transaction (done)
-/// Parse JSON data; (done)
-/// Put governance on proposal nodes; (done)
-/// Filter nodes who can send proposals; (done)
-/// CI/CD; 
-/// Generic options to provide data for any input; 
-/// Parsing data and code from input;
-/// Offchain worker can only parse 248 transactions; (done)
-/// Erro handling
-/// Bump to the latest version (done)
-/// Add deposit events (done)
-/// Add local tests
-/// Capture deposit events
-/// Modify frame/system/src/offchain.rs; src/service.rs
-/// Support forecast of multiple days, cities, etc.
-/// UI allows users to select cities.
-/// Chain supports to get data (city) from users and provision results.
-/// Add readme for chain, ui and steps to operate the chain.
-
+/// A runtime module for Weather Forecast
 
 /// For more guidance on Substrate modules, see the example module
 /// https://github.com/paritytech/substrate/blob/master/frame/example/src/lib.rs
@@ -577,6 +551,19 @@ decl_event!(
 		VoteAuthorityReputationVoteSubmitted(AccountId, AccountId),
 	}
 );
+
+/// TODO: 
+/// CI/CD
+/// Generic options to provide data for any input
+/// Better erro handling
+/// Bump to the latest version
+/// Update README and wiki to walk through how to use this module.
+/// Add local tests
+/// Capture deposit events
+/// Modify frame/system/src/offchain.rs; src/service.rs
+/// Support forecast of multiple days, cities, etc.
+/// UI allows users to select cities
+/// Chain supports to get data (city) from users and provision results.
 
 /// tests for this module
 #[cfg(test)]

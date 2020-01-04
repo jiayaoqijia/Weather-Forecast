@@ -60,6 +60,10 @@ The current version has the following features implemented:
 
     This should start a web server on `localhost:3000` where you can interact with the chain.
 
+## How to interact with the chain:
+
+* Please follow the steps in the [wiki](https://github.com/jiayaoqijia/Weather-Forecast/wiki/Steps-to-interact-with-the-chain).
+
 
 ## License
 
