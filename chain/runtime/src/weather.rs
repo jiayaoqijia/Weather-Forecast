@@ -5,6 +5,8 @@
 /// If you remove this file, you can remove those references
 
 /// TODO: Add timestamp (Moment) (removed)
+/// Create Weather type (done)
+/// Submit signed transaction (done)
 /// Parse JSON data; (done)
 /// Put governance on proposal nodes; (done)
 /// Filter nodes who can send proposals; (done)
@@ -15,6 +17,7 @@
 /// Erro handling
 /// Bump to the latest version (done)
 /// Add deposit events (done)
+/// Add local tests
 /// Capture deposit events
 /// Modify frame/system/src/offchain.rs; src/service.rs
 /// Support forecast of multiple days, cities, etc.
@@ -25,12 +28,12 @@
 
 /// For more guidance on Substrate modules, see the example module
 /// https://github.com/paritytech/substrate/blob/master/frame/example/src/lib.rs
-use support::{debug, decl_event, decl_module, decl_storage, dispatch, dispatch::DispatchError};
+use rstd::{prelude::*, vec::Vec};
+use support::{debug, decl_event, decl_module, decl_storage, dispatch};
 use sp_runtime::traits::Hash;
 use system::{ensure_signed, ensure_root, offchain};
-use rstd::vec::Vec;
 use codec::{Decode, Encode};
-use sp_runtime::offchain::http;
+use sp_runtime::{offchain::http, DispatchError};
 use runtime_io::offchain::random_seed;
 use simple_json::{ self, json::JsonValue };
 use num_traits::float::FloatCore;
@@ -46,10 +49,7 @@ pub mod crypto {
 
 #[derive(Debug, Encode, Decode, Clone, PartialEq, Eq, Default)]
 // #[cfg_attr(feature = "std", derive(Debug))]
-// pub struct Weather<Moment>{
 pub struct Weather {
-	// FIXME: Couldn't use Moment
-	// time: Moment,
 	time: u64,
 	city: Vec<u8>,
 	main: Vec<u8>,
@@ -81,33 +81,35 @@ pub trait Trait: system::Trait + timestamp::Trait {
 // This module's storage items.
 decl_storage! {
 	trait Store for Module<T: Trait> as WeatherForecast {
-		// Just a dummy storage item.
-		// Here we are declaring a StorageValue, `Something` as a Option<u32>
-		// `get(fn something)` is the default getter which returns either the stored `u32` or `None` if nothing stored
-		// Something get(fn something): Option<u32>;
-		// Prices get(fn prices): Vec<u32>;
-		// Proposals; 
+
+		// Accounts able to send weather proposals.
 		ProposalAuthorities get(fn proposal_authorities): Vec<T::AccountId>;
+		// Accounts able to send votes.
 		VoteAuthorities get(fn vote_authorities): Vec<T::AccountId>;
+		// Threshold of votes to confirm proposals etc.
 		VoteThreshold get(fn vote_threshold): u64;
 
+		// Basic information of a proposal and the owner.
 		Proposals: map T::Hash => Weather;
 		ProposalOwner: map T::Hash => T::AccountId;
 
+		// Basic information of all the proposals.
 		AllProposalsArray: map u64 => T::Hash;
 		AllProposalsIndex: map T::Hash => u64;
 		AllProposalsCount get(fn all_proposals_count): u64;
 
+		// Basic information of the owner's proposals.
 		OwnedProposalsArray: map (T::AccountId, u64) => T::Hash;
 		OwnedProposalsIndex: map T::Hash => (T::AccountId, u64);
 		OwnedProposalsCount: map T::AccountId => u64;
 
-
+		// Basic information of all the confirmed proposals.
 		ProposalConfirmation: map T::Hash => Vec<T::AccountId>;
 		AllConfirmedProposalsArray: map u64 => T::Hash;
 		AllConfirmedProposalsIndex: map T::Hash => u64;
 		AllConfirmedProposalsCount get(fn all_confirmed_proposals_count): u64;
 
+		// The reputation of proposal/vote authorities.
 		ProposalAuthorityReputation: map T::AccountId => Vec<T::AccountId>;
 		VoteAuthorityReputation: map T::AccountId => Vec<T::AccountId>;
 
@@ -120,27 +122,9 @@ decl_module! {
 	/// The module declaration.
 	pub struct Module<T: Trait> for enum Call where origin: T::Origin {
 		// Initializing events
-		// this is needed only if you are using events in your module
 		fn deposit_event() = default;
 
-		// Just a dummy entry point.
-		// function that can be called by the external world as an extrinsics call
-		// takes a parameter of the type `AccountId`, stores it and emits an event
-		// pub fn do_something(origin, something: u32) -> dispatch::DispatchResult {
-		// 	// TODO: You only need this if you want to check it was signed.
-		// 	let who = ensure_signed(origin)?;
-
-		// 	// TODO: Code to execute when something calls this.
-		// 	// For example: the following line stores the passed in u32 in the storage
-		// 	Something::put(something);
-
-
-		// 	// here we are raising the Something event
-		// 	Self::deposit_event(RawEvent::SomethingStored(something, who));
-		// 	Ok(())
-		// }
-
-		// Root account adds accounts as authorities to submit weather proposals via offchain worker.
+		/// Add accounts as proposal authorities, which submits weather proposals via offchain worker.
 		pub fn add_proposal_authority(origin, who: T::AccountId) -> dispatch::DispatchResult {
 			// This is protected by a root-call (e.g. through governance like `sudo`).
 			debug::info!("add_proposal_authority who is {:?}", &who);
@@ -157,8 +141,9 @@ decl_module! {
 			Ok(())
 		}
 
-		// Root account deletes proposal authorities.
+		/// Deletes proposal authorities.
 		pub fn delete_proposal_authority(origin, who: T::AccountId) -> dispatch::DispatchResult {
+			// This is protected by a root-call (e.g. through governance like `sudo`).
 			let _me = ensure_root(origin)?;
 	
 			if Self::is_proposal_authority(&who) {
@@ -169,10 +154,10 @@ decl_module! {
 			Ok(())
 		}
 
-		// Root account adds accounts as authorities to vote for weather proposals via offchain worker.
+		/// Add accounts as vote authorities,
+		/// which vote for weather proposals via offchain worker.
 		pub fn add_vote_authority(origin, who: T::AccountId) -> dispatch::DispatchResult {
-			// debug::info!("add_vote_authority who is {:?}", &who);
-	
+			// This is protected by a root-call (e.g. through governance like `sudo`).
 			let _me = ensure_root(origin)?;
 			debug::info!("add_vote_authority is {:?}", Self::vote_authorities());
 	
@@ -185,8 +170,9 @@ decl_module! {
 			Ok(())
 		}
 
-		// Root account deletes vote authorities.
+		/// Delete vote authorities.
 		pub fn delete_vote_authority(origin, who: T::AccountId) -> dispatch::DispatchResult {
+			// This is protected by a root-call (e.g. through governance like `sudo`).
 			let _me = ensure_root(origin)?;
 	
 			if Self::is_vote_authority(&who) {
@@ -197,8 +183,9 @@ decl_module! {
 			Ok(())
 		}
 
-		// Root account sets the threshold of # votes for a weather proposal to be confirmed.
+		/// Set the threshold of # votes for a weather proposal to be confirmed.
 		pub fn set_vote_threshold(origin, threshold: u64) -> dispatch::DispatchResult {
+			// This is protected by a root-call (e.g. through governance like `sudo`).
 			let _me = ensure_root(origin)?;
 			debug::info!("set_vote_threshold is {:?}", Self::vote_threshold());
 	
@@ -212,301 +199,204 @@ decl_module! {
 		fn on_initialize(_now: T::BlockNumber) {
 			// At the beginning of each block execution, system triggers all
 			// `on_initialize` functions, which allows us to set up some temporary state or - like
-			// in this case - clean up other states
-		  }
+		}
 
-		
+		/// Submit a proposal of weather forecast.
 		pub fn submit_weather_proposal(origin, weather: Weather, hash: T::Hash) -> dispatch::DispatchResult {
-
 			let sender = ensure_signed(origin)?;
 
-			// Check if the sender is in proposalauthoritylist.
+			// Check if the sender is a proposal authority.
 			if !Self::is_proposal_authority(&sender) {
 				// TODO: return error
 				debug::info!("{:?} is not in the proposal authority list.", &sender);
-				return Ok(());
+				// return Ok(());
+				return Err(DispatchError::Other("submit_weather_proposal: sender is not a proposal authority."));
 			}
 
-			
+			// Add the weather proposal and proposal's owner.
 			<Self as Store>::Proposals::insert(&hash, &weather);
-			debug::info!("11 Proposals is {:?}", <Self as Store>::Proposals::get(&hash));
+			debug::info!("Proposals is {:?}", <Self as Store>::Proposals::get(&hash));
 			<Self as Store>::ProposalOwner::insert(&hash, &sender);
-			debug::info!("11 owner_of is {:?}", <Self as Store>::ProposalOwner::get(&hash));
-			// Proposals get(fn proposal): map T::Hash => Weather;
-			// ProposalOwner get(fn owner_of): map T::Hash => T::AccountId;
+			debug::info!("ProposalOwner is {:?}", <Self as Store>::ProposalOwner::get(&hash));
 
+			// Update the basic information of all the proposals.
 			<Self as Store>::AllProposalsArray::insert(<Self as Store>::AllProposalsCount::get(), &hash);
-			debug::info!("11 AllProposalsArray is {:?}", <Self as Store>::AllProposalsArray::get(<Self as Store>::AllProposalsCount::get()));
+			debug::info!("AllProposalsArray is {:?}", <Self as Store>::AllProposalsArray::get(<Self as Store>::AllProposalsCount::get()));
 			<Self as Store>::AllProposalsIndex::insert(&hash, <Self as Store>::AllProposalsCount::get());
 			<Self as Store>::AllProposalsCount::mutate(|i| *i += 1);
-
-			debug::info!("11 all_proposals_count is {:?}", <Self as Store>::AllProposalsCount::get());
-			// AllProposalsArray get(fn proposal_by_index): map u64 => T::Hash;
-			// AllProposalsIndex: map T::Hash => u64;
-			// AllProposalsCount get(fn all_proposals_count): u64;
+			debug::info!("AllProposalsCount is {:?}", <Self as Store>::AllProposalsCount::get());
 			
-
+			// Update the basic information of the proposer's proposals.
 			<Self as Store>::OwnedProposalsArray::insert((&sender, <Self as Store>::OwnedProposalsCount::get(&sender)), &hash);
 			let index = <Self as Store>::OwnedProposalsCount::get(&sender);
 			<Self as Store>::OwnedProposalsIndex::insert(&hash, (&sender, index));
 			<Self as Store>::OwnedProposalsCount::mutate(&sender, |i| *i += 1);
 
-			debug::info!("11 OwnedProposalsCount is {:?}", <Self as Store>::OwnedProposalsCount::get(&sender));
+			debug::info!("OwnedProposalsCount is {:?}", <Self as Store>::OwnedProposalsCount::get(&sender));
 			
-			// OwnedProposalsArray get(fn proposal_of_owner_by_index): map (T::AccountId, u64) => T::Hash;
-			// OwnedProposalsIndex: map T::Hash => (T::AccountId, u64);
-			// OwnedProposalsCount get(fn owned_proposal_count): map T::AccountId => u64;
-			
-
-			// ProposalConfirmation get(fn confirmation_of): map T::Hash => Vec<T::AccountId>;
-			// AllConfirmedProposalsArray get(fn confirmed_proposal_by_index): map u64 => T::Hash;
-			// AllConfirmedProposalsIndex: map T::Hash => u64;
-			// AllConfirmedProposalsCount get(fn all_confirmed_proposals_count): u64;
-			
-
-			// Nonce get(fn nonce): u64;
-
-			// debug::info!("Nonce: {:?}", &sender);
-			// let nonce = <Nonce>::get();
-			// debug::info!("Nonce: {:?}", &nonce);
-            // let random_hash = (random_seed(), &sender, &nonce)
-				// .using_encoded(T::Hashing::hash);
-				
-			// let weather = Weather {
-			// 	time: b"1485789600".to_vec(),
-			// 	country: b"UK".to_vec(),
-			// 	city: b"London".to_vec(),
-			// 	description: b"Foggy".to_vec(),
-			// 	temp: b"180".to_vec()
-			// };
-	
-
-			// <Proposals<T>>::insert(&random_hash, Some(weather));
-			// <ProposalOwner<T>>::insert(&random_hash, &sender);
-
-			// <AllProposalsArray<T>>::insert(&nonce, &random_hash);
-			// <AllProposalsIndex<T>>::insert(&random_hash, &nonce);
-			// <AllProposalsCount>::put(&nonce);
-
-			// <Nonce>::mutate(|n| *n += 1);
-
-			// debug::info!("random_hash: {:?}", &random_hash);
-			// debug::info!("sender: {:?}", &sender);
-			// debug::info!("Nonce: {:?}", &nonce);
-
-			// Self::deposit_event(RawEvent::NewWeather(sender, random_hash));
-
-			// debug::info!("Adding to the average: {}", price);
-			// let average = Prices::mutate(|prices| {
-			// 	const MAX_LEN: usize = 64;
-
-			// 	if prices.len() < MAX_LEN {
-			// 		prices.push(price);
-			// 	} else {
-			// 		prices[price as usize % MAX_LEN] = price;
-			// 	}
-
-			// 	// TODO Whatchout for overflows
-			// 	prices.iter().sum::<u32>() / prices.len() as u32
-			// });
-			// debug::info!("Current average price is: {}", average);
-
-			// here we are raising the Something event
-			// Self::deposit_event(RawEvent::NewWeather(weather, who));
-			// AllProposalsCount::put(123);
-			// let nonce = Nonce::get();
-
-			// debug::info!("11 Nonce is {:?}", &nonce);
-
-			// let random_num = hash;
-			// debug::info!("11 random_seed is {:?}", &random_num);
-			// let random_hash = (&random_num, &nonce)
-			// 	.using_encoded(T::Hashing::hash);
-			
-			// <AllProposalsIndex<T>>::insert(&random_hash, &nonce);
-
-			// debug::info!("11 random_hash: {:?}", &random_hash);
-
-			// let weather = Weather {
-			// 	time: b"1485789600".to_vec(),
-			// 	country: b"UK".to_vec(),
-			// 	city: b"London".to_vec(),
-			// 	description: b"Foggy".to_vec(),
-			// 	temp: b"180".to_vec()
-			// };
-
-			// <Proposals<T>>::insert(&random_hash, &weather);
-			// // <ProposalOwner<T>>::insert(&random_hash, &sender);
-			// debug::info!("11 Weather is {:?}", &weather);
-
-			// Nonce::mutate(|n| {
-			// 	*n += 1
-			// 	// match n.as_mut() {
-			// 	// 	Some(x) => *x += 1,
-			// 	// 	None => Nonce::put(1),
-			// 	// }
-			// });
-			// debug::info!("11 Nonce after txn is {:?}", Nonce::get());
+			// Emit an event to indicate that the weather proposal has been submitted.
 			Self::deposit_event(RawEvent::WeatherProposalSubmitted(sender, hash, weather));
 
 			Ok(())
 		}
 
+		/// Submit a vote for a weather proposal.
 		pub fn submit_weather_vote(origin, hash: T::Hash) -> dispatch::DispatchResult {
-			// let who = ensure_signed(origin)?;
 
 			let sender = ensure_signed(origin)?;
 
+			// Check if the sender is a vote authority. 
 			if !Self::is_vote_authority(&sender) {
 				// TODO: return error
 				debug::info!("{:?} is not in the vote authority list.", &sender);
-				return Ok(());
+				// return Ok(());
+				return Err(DispatchError::Other("submit_weather_vote: sender is not a vote authority."));
 			}
 
+			// Check if the sender has already voted for this proposal.
 			if <Self as Store>::ProposalConfirmation::get(&hash).iter().find(|&j| j == &sender).is_some() {
 				debug::info!("{:?} already votes for this proposal.", &sender);
-				return Ok(());
+				// return Ok(());
+				return Err(DispatchError::Other("submit_weather_vote: sender has voted."));
 			}
 			else {
 				<Self as Store>::ProposalConfirmation::mutate(&hash, |i| {
-					// if !i.iter().find(|&j| j == &sender).is_some() {
 					i.push(sender.clone());
 					debug::info!("ProposalConfirmation new vote is {:?}", &sender);
-					// }
 				});
 			}
 	
 			debug::info!("ProposalConfirmation is {:?}", <Self as Store>::ProposalConfirmation::get(&hash));
 			
-			// FIXME: check if AllConfirmedProposalsIndex or hash is duplicated (done)
-
+			// Check if the proposal receives a sufficient number of votes. If yes, it will be confirmed.
 			if <Self as Store>::ProposalConfirmation::get(&hash).len() as u64 == Self::vote_threshold() {
 				<Self as Store>::AllConfirmedProposalsArray::insert(Self::all_confirmed_proposals_count(), &hash);
 				<Self as Store>::AllConfirmedProposalsIndex::insert( &hash, Self::all_confirmed_proposals_count());
 				<Self as Store>::AllConfirmedProposalsCount::mutate(|i| *i += 1);
-				debug::info!("all_confirmed_proposals_count is {:?}", Self::all_confirmed_proposals_count());
+				debug::info!("AllConfirmedProposalsCount is {:?}", Self::all_confirmed_proposals_count());
 			}
 			
+			// Emit an event for the weather vote.
 			Self::deposit_event(RawEvent::WeatherVoteSubmitted(sender, hash));
 			Ok(())
 		}
 
+		/// Cast a vote to kick out a proposal authority.
 		pub fn submit_proposal_authority_reputation(origin, who: T::AccountId) -> dispatch::DispatchResult {
 
 			let sender = ensure_signed(origin)?;
 
+			// Check if the sender is a vote authority.
 			if !Self::is_vote_authority(&sender) {
 				// TODO: return error
 				debug::info!("{:?} is not in the vote authority list.", &sender);
-				return Ok(());
+				// return Ok(());
+				return Err(DispatchError::Other("submit_proposal_authority_reputation: sender is not a vote authority."));
 			}
 	
+			// Check if the proposer is a valid proposal authority.
 			if !Self::is_proposal_authority(&who) {
 				debug::info!("{:?} is not in the proposal authority list.", &who);
-				return Ok(());
+				// return Ok(());
+				return Err(DispatchError::Other("submit_proposal_authority_reputation: proposer is not a proposal authority."));
 			}
 
+			// Check if the sender has already cast the same vote.
 			if <Self as Store>::ProposalAuthorityReputation::get(&who).iter().find(|&j| j == &sender).is_some() {
 				debug::info!("{:?} already votes for this proposal.", &sender);
-				return Ok(());
+				// return Ok(());
+				return Err(DispatchError::Other("submit_proposal_authority_reputation: sender has voted."));
 			}
 			else {
 				<Self as Store>::ProposalAuthorityReputation::mutate(&who, |i| {
-					// if !i.iter().find(|&j| j == &sender).is_some() {
 					i.push(sender.clone());
 					debug::info!("ProposalAuthorityReputation new vote is {:?}", &sender);
-					// }
 				});
 			}
 	
 			debug::info!("ProposalAuthorityReputation is {:?}", <Self as Store>::ProposalAuthorityReputation::get(&who));
 			
-			// FIXME: check if AllConfirmedProposalsIndex or hash is duplicated (done)
-
+			// Check if the proposer receives a sufficient number of votes. If yes, it will be kicked out of the proposal authority list.
 			if <Self as Store>::ProposalAuthorityReputation::get(&who).len() as u64 == Self::vote_threshold() {
 				Self::remove_proposal_authority(&who);
 				<Self as Store>::ProposalAuthorityReputation::remove(&who);
 				debug::info!("ProposalAuthority {:?} is deleted", &who);
 			}
 			
+			// Emit an event for the reputation vote.
 			Self::deposit_event(RawEvent::ProposalAuthorityReputationVoteSubmitted(sender, who));
 			Ok(())
 		}
 
+		/// Cast a vote to kick out a vote authority.
 		pub fn submit_vote_authority_reputation(origin, who: T::AccountId) -> dispatch::DispatchResult {
 
 			let sender = ensure_signed(origin)?;
 
+			// Check if the sender is a vote authority.
 			if !Self::is_vote_authority(&sender) {
 				// TODO: return error
 				debug::info!("{:?} is not in the vote authority list.", &sender);
-				return Ok(());
+				// return Ok(());
+				return Err(DispatchError::Other("submit_vote_authority_reputation: sender is not a vote authority."));
 			}
 	
+			// Check if the user is a vote authority.
 			if !Self::is_vote_authority(&who) {
-				// Self::remove_proposal_authority(&who);
-				debug::info!("{:?} is not in the proposal authority list.", &who);
-				return Ok(());
+				debug::info!("{:?} is not in the vote authority list.", &who);
+				// return Ok(());
+				return Err(DispatchError::Other("submit_vote_authority_reputation: user is not a vote authority."));
 			}
 
+			// Check if the sender has already cast the same vote.
 			if <Self as Store>::VoteAuthorityReputation::get(&who).iter().find(|&j| j == &sender).is_some() {
 				debug::info!("{:?} already votes for this proposal.", &sender);
-				return Ok(());
+				// return Ok(());
+				return Err(DispatchError::Other("submit_vote_authority_reputation: sender has voted."));
 			}
 			else {
 				<Self as Store>::VoteAuthorityReputation::mutate(&who, |i| {
-					// if !i.iter().find(|&j| j == &sender).is_some() {
 					i.push(sender.clone());
 					debug::info!("VoteAuthorityReputation new vote is {:?}", &sender);
-					// }
 				});
 			}
 	
 			debug::info!("VoteAuthorityReputation is {:?}", <Self as Store>::VoteAuthorityReputation::get(&who));
 			
-			// FIXME: check if AllConfirmedProposalsIndex or hash is duplicated (done)
-
+			// Check if the user receives a sufficient number of votes. If yes, it will be kicked out of the vote authority list.
 			if <Self as Store>::VoteAuthorityReputation::get(&who).len() as u64 == Self::vote_threshold() {
 				Self::remove_vote_authority(&who);
 				<Self as Store>::VoteAuthorityReputation::remove(&who);
 				debug::info!("VoteAuthority {:?} is deleted", &who);
 			}
 			
+			// Emit an event for the reputation vote.
 			Self::deposit_event(RawEvent::VoteAuthorityReputationVoteSubmitted(sender, who));
 			Ok(())
 		}
 
 
 		fn offchain_worker(block_number: T::BlockNumber) {
-			// use support::debug::info;
 
-			if true {
 			debug::info!("Offchain worker starts!");
 			debug::info!("Current block number is: {:?}", block_number);
-			// debug::info!("Something is {:?}", Something::get());
-			// Something::put(6);
-			// debug::info!("Something is {:?}", Something::get());
-			// info!("Parent block hash: {:?}", <system::Module<T>>::block_hash(block_number - 1.into()));
+
 			let weather = match Self::fetch_weather() {
 				Ok(weather) => {
 				  debug::info!("Got weather: {:?}", weather);
 				  weather
 				},
 				_ => {
-				  debug::error!("Error fetching BTC price.");
+				  debug::error!("Error fetching weather.");
 				  return
 				}
 			};
-			// Something::put(price as u32);
-			// debug::info!("Something is {:?}", Something::get());
-			// Nonce::put(247);
-			
-			// debug::info!("Nonce before mutate is {:?}", Nonce::get());
+
 			Nonce::mutate(|n| {
 				*n += 1
 			});
-			// debug::info!("Nonce after mutate is {:?}", Nonce::get());
-			// // Nonce::put(43);
+
+			// Generate a random hash as an ID for the weather proposal.
 			let nonce = Nonce::get();
 			debug::info!("Nonce is {:?}", &nonce);
 
@@ -515,32 +405,25 @@ decl_module! {
 			let random_hash = (&random_num, &nonce)
 				.using_encoded(T::Hashing::hash);
 			
-			// <AllProposalsIndex<T>>::insert(&random_hash, &nonce);
-
 			debug::info!("random_hash: {:?}", &random_hash);
 
-			// <Proposals<T>>::insert(&random_hash, &weather);
 			debug::info!("Weather is {:?}", &weather);
 
-			// <AllProposalsArray<T>>::insert(&nonce, &random_hash);
-			// AllProposalsCount::put(&nonce);
-
 			Self::submit_weather_proposal_on_chain(weather, random_hash);
-		}
 		}
 	}
 }
 
 impl<T: Trait> Module<T> {
 
-	/// Helper that confirms whether the given `AccountId` can send `proposal` transactions
+	/// Helper that confirms whether the given `AccountId` can send `proposal` transactions.
 	fn is_proposal_authority(who: &T::AccountId) -> bool {
 		let result = Self::proposal_authorities().into_iter().find(|i| i == who).is_some();
 		debug::info!("is_proposal_authority result is {:?}", &result);
 		result
 	}
 
-	/// TODO: find Query's usage
+	/// Helper that removes the proposal authority of the given `AccountId`.
 	fn remove_proposal_authority(who: &T::AccountId){
 		<Self as Store>::ProposalAuthorities::mutate(|l| {
 			let position = Self::proposal_authorities().into_iter().position(|i| i == *who).unwrap();
@@ -549,13 +432,14 @@ impl<T: Trait> Module<T> {
 		});
 	}
 
-	/// Helper that confirms whether the given `AccountId` can send `proposal` transactions
+	/// Helper that confirms whether the given `AccountId` can send `vote` transactions
 	fn is_vote_authority(who: &T::AccountId) -> bool {
 		let result = Self::vote_authorities().into_iter().find(|i| i == who).is_some();
 		debug::info!("is_vote_authority result is {:?}", &result);
 		result
 	}
 
+	/// Helper that removes the vote authority of the given `AccountId`.
 	fn remove_vote_authority(who: &T::AccountId){
 		<Self as Store>::VoteAuthorities::mutate(|l| {
 			let position = Self::vote_authorities().into_iter().position(|i| i == *who).unwrap();
@@ -564,17 +448,20 @@ impl<T: Trait> Module<T> {
 		});
 	}
 
+	/// Helper that parses the JSON data to weather using simplejson.
 	fn parse_weather_json(json_val: JsonValue) -> Result<Weather, http::Error> {
+		// Sample weather data in JSON format.
+		// {"coord":{"lon":-0.13,"lat":51.51},"weather":[{"id":803,"main":"Clouds","description":"broken clouds","icon":"04n"}],"base":"stations","main":{"temp":277.69,"feels_like":272.73,"temp_min":275.93,"temp_max":279.15,"pressure":1033,"humidity":81},"visibility":10000,"wind":{"speed":4.6,"deg":240},"clouds":{"all":51},"dt":1578119710,"sys":{"type":1,"id":1414,"country":"GB","sunrise":1578125144,"sunset":1578153856},"timezone":0,"id":2643743,"name":"London","cod":200}
 		let main = json_val.get_object()[1].1.get_array()[0].get_object()[1].1.get_string();
 		let description = json_val.get_object()[1].1.get_array()[0].get_object()[2].1.get_string();
 		let icon = json_val.get_object()[1].1.get_array()[0].get_object()[3].1.get_string();
-		debug::warn!("main, description, icon is {:?}, {:?}, {:?}", &main, &description, &icon);
+		debug::info!("main, description, icon is {:?}, {:?}, {:?}", &main, &description, &icon);
 
 		let temp_f64 = json_val.get_object()[3].1.get_object()[0].1.get_number_f64();
 		let temp = (temp_f64 * 1000.0).round() as u32;
 		let humidity_f64 = json_val.get_object()[3].1.get_object()[5].1.get_number_f64();
 		let humidity = (humidity_f64 * 1000.0).round() as u32;
-		debug::warn!("temp, humidity is {:?}, {:?}", &temp, &humidity);
+		debug::info!("temp, humidity is {:?}, {:?}", &temp, &humidity);
 
 		let wind_f64 = json_val.get_object()[5].1.get_object()[0].1.get_number_f64();
 		let wind = (wind_f64 * 1000.0).round() as u32;
@@ -588,7 +475,7 @@ impl<T: Trait> Module<T> {
 
 		let city = json_val.get_object()[11].1.get_string();
 
-		debug::warn!("time: {:?} \n 
+		debug::info!("time: {:?} \n 
 		city: {:?} \n 
 		main: {:?} \n 
 		description: {:?} \n 
@@ -606,7 +493,7 @@ impl<T: Trait> Module<T> {
 		let description_bytes = json_val.get_object()[1].1.get_array()[0].get_object()[2].1.get_bytes();
 		let icon_bytes = json_val.get_object()[1].1.get_array()[0].get_object()[3].1.get_bytes();
 		let city_bytes = json_val.get_object()[11].1.get_bytes();
-		debug::warn!("main_bytes, description_bytes, icon_bytes, city_bytes is {:?}, {:?}, {:?}, {:?}", &main_bytes, &description_bytes, 
+		debug::info!("main_bytes, description_bytes, icon_bytes, city_bytes is {:?}, {:?}, {:?}, {:?}", &main_bytes, &description_bytes, 
 		&icon_bytes, &city_bytes);
 
 		let weather = Weather {
@@ -622,11 +509,12 @@ impl<T: Trait> Module<T> {
 			sunrise: sunrise,
 			sunset: sunset
 		};
-		debug::warn!("weather is {:?}", &weather);
+		debug::info!("Weather is {:?}", &weather);
 		Ok(weather)
 
 	}
 	
+	/// Helper that fetches weather data in JSON format using off-chain worker's HTTP request.
 	fn fetch_weather() -> Result<Weather, http::Error> {
 		let pending = http::Request::get(
         "https://api.openweathermap.org/data/2.5/weather?q=London,uk&APPID=47c69406d636336123cbef9721328177"
@@ -638,11 +526,8 @@ impl<T: Trait> Module<T> {
 			return Err(http::Error::Unknown);
 		}
 
-		//   let body = response.body().collect::<Vec<u8>>();
-		// const START_IDX: usize = "{\"USD\":".len();
 		let body = response.body().collect::<Vec<u8>>();
-		debug::info!("Weather json in");
-		debug::warn!("Body: {:?}", core::str::from_utf8(&body).ok());
+		debug::info!("HTTP response: {:?}", core::str::from_utf8(&body).ok());
 		let json_val: JsonValue = simple_json::parse_json(
 			&core::str::from_utf8(&body).unwrap())
 			.unwrap();
@@ -652,10 +537,9 @@ impl<T: Trait> Module<T> {
 		Ok(weather)
 	}
 
-
+	/// Helper that submits an on-chain transaction for the weather forecast.
 	fn submit_weather_proposal_on_chain(weather: Weather, hash: T::Hash) {
 		use system::offchain::SubmitSignedTransaction;
-		// let call = Call::submit_weather_proposal(weather);
 		let call = Call::submit_weather_proposal(weather, hash);
 		let res = T::SubmitTransaction::submit_signed(call);
 
@@ -672,18 +556,24 @@ decl_event!(
 	where
 		AccountId = <T as system::Trait>::AccountId,
 		Hash = <T as system::Trait>::Hash
-		// Moment = <T as timestamp::Trait>::Moment,
 	{
-		// To emit this event, we call the deposit funtion, from our runtime funtions
-		// SomethingStored(u32, AccountId),
+		// Event to add a proposal authority.
 		ProposalAuthoritiesAdded(AccountId),
+		// Event to remove a proposal authority.
 		ProposalAuthoritiesDeleted(AccountId),
+		// Event to add a vote authority.
 		VoteAuthoritiesAdded(AccountId),
+		// Event to remove a vote authority.
 		VoteAuthoritiesDeleted(AccountId),
+		// Event to set a threshold for votes.
 		VoteThresholdSet(u64),
+		// Event to submit a weather proposal.
 		WeatherProposalSubmitted(AccountId, Hash, Weather),
+		// Event to submit a weather vote.
 		WeatherVoteSubmitted(AccountId, Hash),
+		// Event to cast a vote to kick out a proposal authority.
 		ProposalAuthorityReputationVoteSubmitted(AccountId, AccountId),
+		// Event to cast a vote to kick out a vote authority.
 		VoteAuthorityReputationVoteSubmitted(AccountId, AccountId),
 	}
 );

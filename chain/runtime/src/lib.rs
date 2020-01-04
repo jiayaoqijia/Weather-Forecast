@@ -1,4 +1,4 @@
-//! The Substrate Node Template runtime. This can be compiled with `#[no_std]`, ready for Wasm.
+//! The Substrate Weather runtime. This can be compiled with `#[no_std]`, ready for Wasm.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 // `construct_runtime!` does a lot of recursion and requires us to increase the limit to 256.
@@ -7,35 +7,6 @@
 // Make the WASM binary available.
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
-
-// use sp_std::prelude::*;
-// use sp_core::OpaqueMetadata;
-// use sp_runtime::{
-// 	ApplyExtrinsicResult, transaction_validity::TransactionValidity, generic, create_runtime_str,
-// 	impl_opaque_keys, MultiSignature
-// };
-// use sp_runtime::traits::{
-// 	NumberFor, BlakeTwo256, Block as BlockT, StaticLookup, Verify, ConvertInto, IdentifyAccount
-// };
-// use sp_api::impl_runtime_apis;
-// use sp_consensus_aura::sr25519::AuthorityId as AuraId;
-// use grandpa::AuthorityList as GrandpaAuthorityList;
-// use grandpa::fg_primitives;
-// use sp_version::RuntimeVersion;
-// #[cfg(feature = "std")]
-// use sp_version::NativeVersion;
-
-// // A few exports that help ease life for downstream crates.
-// #[cfg(any(feature = "std", test))]
-// pub use sp_runtime::BuildStorage;
-// pub use timestamp::Call as TimestampCall;
-// pub use balances::Call as BalancesCall;
-// pub use sp_runtime::{Permill, Perbill};
-// pub use frame_support::{
-// 	StorageValue, construct_runtime, parameter_types,
-// 	traits::Randomness,
-// 	weights::Weight,
-// };
 
 use rstd::prelude::*;
 use primitives::OpaqueMetadata;
@@ -92,8 +63,7 @@ pub type Hash = primitives::H256;
 /// Digest item type.
 pub type DigestItem = generic::DigestItem<Hash>;
 
-/// Used for the module template in `./template.rs`
-// mod template;
+/// Used for the module weather in `./weather.rs`
 pub mod weather;
 
 /// Opaque types. These are used by the CLI to instantiate machinery that don't need to know
@@ -263,11 +233,6 @@ impl sudo::Trait for Runtime {
 	type Proposal = Call;
 }
 
-/// Used for the module template in `./template.rs`
-// impl template::Trait for Runtime {
-// 	type Event = Event;
-// }
-
 impl weather::Trait for Runtime {
 	type Event = Event;
 	type Call = Call;
@@ -323,8 +288,6 @@ construct_runtime!(
 		Balances: balances::{default, Error},
 		TransactionPayment: transaction_payment::{Module, Storage},
 		Sudo: sudo,
-		// Used for the module template in `./template.rs`
-		// TemplateModule: template::{Module, Call, Storage, Event<T>},
 		WeatherForecast: weather::{Module, Call, Storage, Event<T>},
 		RandomnessCollectiveFlip: randomness_collective_flip::{Module, Call, Storage},
 	}
