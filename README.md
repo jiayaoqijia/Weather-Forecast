@@ -47,7 +47,10 @@ The current version has the following features implemented:
     yarn start
     ```
 
-    This should start a web server on `localhost:8080` where you can see the weather fetched from the chain.
+    This should start a web server on `localhost:8080` where you can see the weather fetched from the chain as shown below.
+<p align="center">
+  <img src="https://github.com/jiayaoqijia/Weather-Forecast/blob/master/ui/preview.png" width=50%>
+</p>
     
 ## How to build the PolkadotJS apps:
 
@@ -58,7 +61,8 @@ The current version has the following features implemented:
     yarn run start
     ```
 
-    This should start a web server on `localhost:3000` where you can interact with the chain.
+    This should start a web server on `localhost:3000` where you can interact with the chain as shown below.
+[![](https://github.com/jiayaoqijia/Weather-Forecast/blob/master/docs/figures/check_weather.png?raw=true)]()
 
 ## How to build the tests:
 
