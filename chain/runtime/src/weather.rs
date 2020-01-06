@@ -65,29 +65,29 @@ decl_storage! {
 
         // Basic information of a proposal and the owner.
         Proposals: map T::Hash => Weather;
-                   ProposalOwner: map T::Hash => T::AccountId;
+        ProposalOwner: map T::Hash => T::AccountId;
 
-                                  // Basic information of all the proposals.
-                                  AllProposalsArray: map u64 => T::Hash;
-                                                     AllProposalsIndex: map T::Hash => u64;
-                                                                        AllProposalsCount get(fn all_proposals_count): u64;
+        // Basic information of all the proposals.
+        AllProposalsArray: map u64 => T::Hash;
+        AllProposalsIndex: map T::Hash => u64;
+        AllProposalsCount get(fn all_proposals_count): u64;
 
-                                                                        // Basic information of the owner's proposals.
-                                                                        OwnedProposalsArray: map (T::AccountId, u64) => T::Hash;
-                                                                                             OwnedProposalsIndex: map T::Hash => (T::AccountId, u64);
-                                                                                                                  OwnedProposalsCount: map T::AccountId => u64;
+        // Basic information of the owner's proposals.
+        OwnedProposalsArray: map (T::AccountId, u64) => T::Hash;
+        OwnedProposalsIndex: map T::Hash => (T::AccountId, u64);
+        OwnedProposalsCount: map T::AccountId => u64;
 
-                                                                                                                                       // Basic information of all the confirmed proposals.
-                                                                                                                                       ProposalConfirmation: map T::Hash => Vec<T::AccountId>;
-                                                                                                                                                             AllConfirmedProposalsArray: map u64 => T::Hash;
-                                                                                                                                                                                         AllConfirmedProposalsIndex: map T::Hash => u64;
-                                                                                                                                                                                                                     AllConfirmedProposalsCount get(fn all_confirmed_proposals_count): u64;
+        // Basic information of all the confirmed proposals.
+        ProposalConfirmation: map T::Hash => Vec<T::AccountId>;
+        AllConfirmedProposalsArray: map u64 => T::Hash;
+        AllConfirmedProposalsIndex: map T::Hash => u64;
+        AllConfirmedProposalsCount get(fn all_confirmed_proposals_count): u64;
 
-                                                                                                                                                                                                                     // The reputation of proposal/vote authorities.
-                                                                                                                                                                                                                     ProposalAuthorityReputation: map T::AccountId => Vec<T::AccountId>;
-                                                                                                                                                                                                                                                  VoteAuthorityReputation: map T::AccountId => Vec<T::AccountId>;
+        // The reputation of proposal/vote authorities.
+        ProposalAuthorityReputation: map T::AccountId => Vec<T::AccountId>;
+        VoteAuthorityReputation: map T::AccountId => Vec<T::AccountId>;
 
-                                                                                                                                                                                                                                                                           Nonce get(fn nonce): u64;
+        Nonce get(fn nonce): u64;
     }
 }
 
