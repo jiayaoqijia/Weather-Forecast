@@ -15,8 +15,9 @@ A weather [UI](https://github.com/mwrod/weather-widget) to display the current w
     This should start a web server on `localhost:8080` where you can see the weather fetched from the chain.
 
 ## Preview
-
-[![Preview](preview.png?raw=true)](https://github.com/jiayaoqijia/Weather-Forecast/ui)
+<p align="center">
+  <img src="https://github.com/jiayaoqijia/Weather-Forecast/blob/master/ui/preview.png" width=50%>
+</p>
 
 
 ## License
